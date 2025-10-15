@@ -23,7 +23,7 @@ jobs:
       - name: Build backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend       # always point to backend folder
+          context: .           # <-- root of repo
           push: false
           tags: backend-test:latest
 
@@ -45,7 +45,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
-          context: ./backend       # must match build context
+          context: .           # <-- root of repo
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
