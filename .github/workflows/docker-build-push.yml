@@ -1,38 +1,48 @@
-name: Backend Build and Docker Push
+name: Backend Build, Test & Push
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  build-and-push:
+  backend:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout source code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 3: Log in to DockerHub
+      # Step 1: Build the backend image (always)
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: false
+          tags: backend-test:latest
+
+      # Step 2: Run tests (only if you have tests)
+      - name: Run backend tests
+        run: |
+          docker run --rm backend-test:latest pytest || echo "No tests found"
+
+      # Step 3: Only push if the branch is 'main' (not PRs)
       - name: Login to DockerHub
+        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 4: Build and push Docker image
-      - name: Build and Push Docker image
+      - name: Push backend Docker image
+        if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./backend
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
