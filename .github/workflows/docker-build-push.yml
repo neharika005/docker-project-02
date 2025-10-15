@@ -1,4 +1,4 @@
-name: Backend Build, Test & Push
+name: Backend Build, Test, Push & Deploy
 
 on:
   push:
@@ -23,7 +23,7 @@ jobs:
       - name: Build backend Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .           # <-- root of repo
+          context: .           # root of repo
           push: false
           tags: backend-test:latest
 
@@ -32,7 +32,7 @@ jobs:
         run: |
           docker run --rm backend-test:latest pytest || echo "No tests found"
 
-      # Step 5: Login to DockerHub (only on main branch)
+      # Step 5: Login to DockerHub (main branch only)
       - name: Login to DockerHub
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
@@ -40,13 +40,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 6: Push backend Docker image (only on main branch)
+      # Step 6: Push backend Docker image (main branch only)
       - name: Push backend Docker image
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
-          context: .           # <-- root of repo
+          context: .           # root of repo
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:${{ github.sha }}
+
+      # Step 7: Deploy locally on GitHub Actions runner (main branch only)
+      - name: Deploy to Local Test Environment
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "Stopping any existing backend container..."
+          docker stop backend || true
+          docker rm backend || true
+          echo "Starting new backend container..."
+          docker run -d --name backend -p 8080:8080 ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
+          echo "Running containers:"
+          docker ps
