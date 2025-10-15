@@ -42,7 +42,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
         with:
-          context: ./backend
+          context: .
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/backend:latest
